@@ -86,7 +86,12 @@ object AppDownloader extends LogSupport {
         val versionLine = appInfo.find(_.contains("version code"))
         versionLine match {
           case Some(versionInfo) => 
-            Result(versionInfo.split(": ").apply(1))
+            val version = versionInfo.split(": ").lift(1).getOrElse("")
+          if (version.isEmpty) {
+            UnknownPanic("Version not compatible", "app version")
+          } else {
+            Result(version)
+          }
           case None => 
             UnknownPanic(
               s"Version info not found:\n ${lastLine.mkString("\n")}",
@@ -127,7 +132,6 @@ object AppDownloader extends LogSupport {
     val lines: ListBuffer[String] = ListBuffer()
     try {
       Thread.sleep(Random.nextLong(DELAY_TIME_MAX)) // waiting between 0 and DELAY_TIME_MAX to avoid too many requests
-      info(s"Version: $version, von App: $app")
       val download = s"$googleplay -d $app -p $DEVICE_TYPE -s -v $version"
       val ret = Process(download, new File(folder)) ! ProcessLogger(
         _ => (),
