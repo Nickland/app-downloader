@@ -47,9 +47,9 @@ object AppDownloader extends LogSupport {
       val lastLine = panicLines.filter(_.contains("panic:"))
       if (lastLine.exists(_.contains("400 Bad Request"))) {
         BadRequest(lastLine.mkString("\n"), context)
-      } else if (lastLine.exists(_.contains("your device isn't compatible"))) {
+      } else if (lastLine.exists(_.contains("your device isn't compatible")) || lastLine.exists(_.contains("Ihr Gerät ist mit diesem Artikel nicht kompatibel"))) {
         IncompatibleDevice(lastLine.mkString("\n"), context)
-      } else if (lastLine.exists(_.contains("purchase required"))) {
+      } else if (lastLine.exists(_.contains("purchase required")) || lastLine.exists(_.contains("Kauf"))) {
         PurchaseRequired(context)
       } else {
         UnknownPanic(panicLines.mkString("\n"), context)
@@ -72,21 +72,26 @@ object AppDownloader extends LogSupport {
     */
   def readinessCheckGooglePlayTool(googleplay: String): Unit =
     s"$googleplay".!!
-
+  
   def getAppVersion(app: String, googleplay: String): GooglePlayResult = {
     val lastLine: ListBuffer[String] = ListBuffer()
     try {
-      val appInfo = s"$googleplay -p $DEVICE_TYPE -a $app"
+      val appInfo = s"$googleplay -d $app -p $DEVICE_TYPE"
         .!!(ProcessLogger(_ => (), err => lastLine.append(err)))
         .split("\n")
+    
       val panicLine = lastLine.filter(_.contains("panic"))
+
       if (panicLine.isEmpty) {
-        if (appInfo.length == 9) {
-          Result(appInfo.apply(4).split(": ").apply(1))
-        } else {
-          UnknownPanic(
-            s"unexpected output line count:\n ${lastLine.mkString("\n")}",
-            "app version")
+        val versionLine = appInfo.find(_.contains("version code"))
+        versionLine match {
+          case Some(versionInfo) => 
+            Result(versionInfo.split(": ").apply(1))
+          case None => 
+            UnknownPanic(
+              s"Version info not found:\n ${lastLine.mkString("\n")}",
+              "app version"
+            )
         }
       } else {
         Panic.getPanic(panicLine, "app version")
@@ -100,7 +105,7 @@ object AppDownloader extends LogSupport {
   def purchase(app: String, googleplay: String): GooglePlayResult = {
     val lines = ListBuffer[String]()
     try {
-      val ret = s"$googleplay -purchase -p $DEVICE_TYPE -a $app" ! ProcessLogger(
+      val ret = s"$googleplay -d $app -p $DEVICE_TYPE -a" ! ProcessLogger(
         _ => (),
         err => lines.append(err))
       val panic = lines.filter(_.contains("panic:"))
@@ -122,7 +127,8 @@ object AppDownloader extends LogSupport {
     val lines: ListBuffer[String] = ListBuffer()
     try {
       Thread.sleep(Random.nextLong(DELAY_TIME_MAX)) // waiting between 0 and DELAY_TIME_MAX to avoid too many requests
-      val download = s"$googleplay -p $DEVICE_TYPE -a $app -s -v $version"
+      info(s"Version: $version, von App: $app")
+      val download = s"$googleplay -d $app -p $DEVICE_TYPE -s -v $version"
       val ret = Process(download, new File(folder)) ! ProcessLogger(
         _ => (),
         err => lines.append(err))
