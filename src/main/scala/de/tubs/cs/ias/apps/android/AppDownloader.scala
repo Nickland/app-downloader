@@ -71,14 +71,11 @@ object AppDownloader extends LogSupport {
   case class Result(value: String) extends GooglePlayResult
 
   class InfoResult(output: Array[String]) extends GooglePlayResult {
-    //println(output.mkString("\n"))
-    //println(output.length)
-    //assert(
-    //  output.length == 12,
-    //  s"expected 12 line output but got ${output.length} \n ${output.mkString("\n")}")
-    //assert(output(0).startsWith("msg=POST"))
-    //assert(output(1).startsWith("msg=GET"))
-    //println("parsing body")
+    /*assert(
+      output.length == 12,
+      s"expected 12 line output but got ${output.length} \n ${output.mkString("\n")}")
+    assert(output(0).startsWith("msg=POST"))
+    assert(output(1).startsWith("msg=GET"))*/
     val vendor: String = extractValue(output(5))
     val price: String = extractValue(output(0))
     val versionName: String = extractValue(output(1))
@@ -89,7 +86,6 @@ object AppDownloader extends LogSupport {
     val name: String = extractValue(output(8)) 
     val size: String = extractValue(output(9))
     val versionCode: String = extractValue(output(10))
-    //println("parsing done")
 
     private def extractValue(value: String): String = {
       value.split("=").toList match {
@@ -131,7 +127,6 @@ object AppDownloader extends LogSupport {
       if (panicLine.isEmpty) {
         try {
 	    val ret = new InfoResult(appInfo)
-	    //println(ret.versionCode)
 	    ret
         } catch {
           case _: Throwable =>
@@ -154,7 +149,6 @@ object AppDownloader extends LogSupport {
     val stdLines = ListBuffer[String]()
     //val cmd = s"$googleplay -abi $DEVICE_TYPE -a $app"
     val cmd = s"$googleplay -abi \"$DEVICE_TYPE\" -i $app -a"
-    //println(cmd)
     try {
       val ret = cmd ! ProcessLogger(_ => (), err => errLines.append(err))
       val panic = errLines.filter(_.contains("panic:"))
@@ -176,7 +170,6 @@ object AppDownloader extends LogSupport {
     val errlines: ListBuffer[String] = ListBuffer()
     val stdlines: ListBuffer[String] = ListBuffer()
     val download = s"$googleplay -abi \"$DEVICE_TYPE\" -i $app -v $version"
-    //println(download)
     try {
       Thread.sleep(Random.nextLong(DELAY_TIME_MAX)) // waiting between 0 and DELAY_TIME_MAX to avoid too many requests
       val ret = Process(download, new File(folder)) ! ProcessLogger(
