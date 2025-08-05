@@ -106,21 +106,22 @@ object Apmi extends LogSupport {
   private def ensureFolderStructureCreate(
       downloadFolderRoot: String): (String, String, String, String) = {
     folderStructure match {
-      case Some(value) => value.getFolderStructure
+      case Some(value) =>
+	value.getFolderStructure
       case None =>
         assert(downloadFolderRoot.charAt(downloadFolderRoot.length - 1) == '/',
                "the path has to end on a /")
-        val currentDay: String =
+	val currentDay: String =
           LocalDateTime.now.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
         val currentMainFolder =
           fsi.ensureFolderExists(s"$downloadFolderRoot/$currentDay/")
-        val listsFolder =
+	val listsFolder =
           fsi.ensureFolderExists(s"$downloadFolderRoot/$currentDay/lists/")
         val labelsFolder =
           fsi.ensureFolderExists(s"$downloadFolderRoot/$currentDay/labels/")
         val appsFolder =
           fsi.ensureFolderExists(s"$downloadFolderRoot/$currentDay/apps/")
-        wvlet.log.Logger.rootLogger.resetHandler(
+	wvlet.log.Logger.rootLogger.resetHandler(
           new FileHandler(
             fileName = s"$currentMainFolder/report.log",
             formatter = PlainSourceCodeLogFormatter
